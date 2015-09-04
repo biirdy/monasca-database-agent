@@ -1,14 +1,14 @@
-# project
-import monasca_agent.collector.checks as checks
+import logging
 import pymssql
 
-log = logging.getLogger(__name__)
+# project
+import monasca_agent.collector.checks as checks
 
 class DatabseStatsMSSQL(checks.AgentCheck):
-
-	def __init__(self, name, init_config, agent_config):
+    
+    def __init__(self, name, init_config, agent_config):
         super(DatabseStatsMSSQL, self).__init__(name, init_config, agent_config)
-    	self.prev_stats = {}
+        self.prev_stats = {}
 
     def check(self, instance):
 
@@ -18,13 +18,13 @@ class DatabseStatsMSSQL(checks.AgentCheck):
     	database = instance.get('database', '')
 
     	conn 	= pymssql.connect(host, user, password, database)
-    	cursor	= conn.cursor()
+    	cursor	= conn.cursor(as_dict=True)
 
     	#unique name
     	name = host + database
 
     	# det dbid from name - should check that database actually exists
-    	cursor.execture('SELECT dbid FROM sys.sysaltfiles WHERE name=%s', database)		
+    	cursor.execute('SELECT dbid FROM sys.sysaltfiles WHERE name=%s', database)		
     	dbid 	= int(cursor.fetchone()['dbid'])		# result should only ever be a single row
 
     	# get file stats
@@ -39,17 +39,17 @@ class DatabseStatsMSSQL(checks.AgentCheck):
     		return
 
    		#set dimensions
-		dimensions = self._set_dimensions({"host": host, "database": databse}, instance)
+		dimensions = self._set_dimensions({"host": host, "database": database}, instance)
 
 		#post differences
-		self.gauge('database.num_reads', row['NumberReads'] - prev_stats[name]['NumberReads'],  dimensions)
-		self.gauge('database.bytes_read', row['BytesRead'] - prev_stats[name]['BytesRead'],  dimensions)
-		self.gauge('database.io_stall_read', row['IoStallReadMS'] - prev_stats[name]['IoStallReadMS'],  dimensions)
-		self.gauge('database.num_writes', row['NumberWrites'] - prev_stats[name]['NumberWrites'],  dimensions)
-		self.gauge('database.bytes_written', row['BytesWritten'] - prev_stats[name]['BytesWritten'],  dimensions)
-		self.gauge('database.io_stall_writes', row['IoStallWriteMS'] - prev_stats[name]['IoStallWriteMS'],  dimensions)
-		self.gauge('database.io_stall', row['IoStallMS'] - prev_stats[name]['IoStallMS'],  dimensions)
-		self.gauge('database.bytes_on_disk', row['BytesOnDisk'] - prev_stats[name]['BytesOnDisk'],  dimensions)    	
+		self.gauge('database.num_reads', row['NumberReads'] - self.prev_stats[name]['NumberReads'],  dimensions)
+		self.gauge('database.bytes_read', row['BytesRead'] - self.prev_stats[name]['BytesRead'],  dimensions)
+		self.gauge('database.io_stall_read', row['IoStallReadMS'] - self.prev_stats[name]['IoStallReadMS'],  dimensions)
+		self.gauge('database.num_writes', row['NumberWrites'] - self.prev_stats[name]['NumberWrites'],  dimensions)
+		self.gauge('database.bytes_written', row['BytesWritten'] - self.prev_stats[name]['BytesWritten'],  dimensions)
+		self.gauge('database.io_stall_writes', row['IoStallWriteMS'] - self.prev_stats[name]['IoStallWriteMS'],  dimensions)
+		self.gauge('database.io_stall', row['IoStallMS'] - self.prev_stats[name]['IoStallMS'],  dimensions)
+		self.gauge('database.bytes_on_disk', row['BytesOnDisk'] - self.prev_stats[name]['BytesOnDisk'],  dimensions)    	
 
     	self.prev_stats[name] = row
 
