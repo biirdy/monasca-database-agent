@@ -1,0 +1,12 @@
+====CentOS (OpenStack Testbed)====
+
+=== Requirements===
+$ sudo yum install freetds-dev
+$ sudo pip install -r requirements.txt
+
+===Install monasca-agent plugin and config===
+$ cp database.py /usr/lib/python2.7/site-packages/monasca_agent/collector/checks_d/database.py
+$ cp database.yaml /etc/monasca/agent/conf.d/network_stats.yaml
+
+===Restat monasca-agent===
+$ sudo service monasca-agent restart
